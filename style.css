@@ -14,3 +14,27 @@ It is required for adding icons to your admin settings.
 	background-image: url('images/feather.svg');
 	background-size: 18px 18px;
 }
+
+/* Ensure the Dashicons font is properly loaded */
+@font-face {
+	font-family: 'dashicons';
+	src: url('https://s.w.org/wp-includes/fonts/dashicons.eot');
+	src: url('https://s.w.org/wp-includes/fonts/dashicons.eot?#iefix') format('embedded-opentype'),
+			 url('https://s.w.org/wp-includes/fonts/dashicons.woff') format('woff'),
+			 url('https://s.w.org/wp-includes/fonts/dashicons.ttf') format('truetype'),
+			 url('https://s.w.org/wp-includes/fonts/dashicons.svg#dashicons') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}
+
+.dashicons {
+	font-family: dashicons;
+}
+
+.dashicons-visibility:before {
+	content: '\f177';
+}
+
+.dashicons-hidden:before {
+	content: '\f530';
+}

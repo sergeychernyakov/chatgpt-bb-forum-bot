@@ -5,6 +5,8 @@ defined( 'ABSPATH' ) || exit;
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_admin_enqueue_script' ) ) {
 	function CHATGPTBBFORUMBOT_admin_enqueue_script() {
 		wp_enqueue_style( 'buddyboss-addon-admin-css', plugin_dir_url( __FILE__ ) . 'style.css' );
+		wp_enqueue_style( 'dashicons' ); // Enqueue Dashicons
+		wp_enqueue_script( 'buddyboss-addon-admin-js', plugin_dir_url( __FILE__ ) . 'script.js', array('jquery'), false, true );
 	}
 
 	add_action( 'admin_enqueue_scripts', 'CHATGPTBBFORUMBOT_admin_enqueue_script' );
@@ -46,10 +48,17 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_fields' ) ) {
 
 		$fields['CHATGPTBBFORUMBOT_settings_section'] = array(
 
-			'CHATGPTBBFORUMBOT_field' => array(
-				'title'             => __( 'ChatGPT BB Forum Bot Field', 'chatgpt-bb-forum-bot' ),
-				'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_field',
-				'sanitize_callback' => 'absint',
+			'CHATGPTBBFORUMBOT_openai_assistant_id' => array(
+				'title'             => __( 'OpenAI Assistant ID', 'chatgpt-bb-forum-bot' ),
+				'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_openai_assistant_id',
+				'sanitize_callback' => 'sanitize_text_field',
+				'args'              => array(),
+			),
+
+			'CHATGPTBBFORUMBOT_openai_api_key' => array(
+				'title'             => __( 'OpenAI API Key', 'chatgpt-bb-forum-bot' ),
+				'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key',
+				'sanitize_callback' => 'sanitize_text_field',
 				'args'              => array(),
 			),
 
@@ -59,17 +68,41 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_fields' ) ) {
 	}
 }
 
-if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_field' ) ) {
-	function CHATGPTBBFORUMBOT_settings_callback_field() {
+if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_openai_assistant_id' ) ) {
+	function CHATGPTBBFORUMBOT_settings_callback_openai_assistant_id() {
+		$option = get_option( 'CHATGPTBBFORUMBOT_openai_assistant_id', '' );
 		?>
-        <input name="CHATGPTBBFORUMBOT_field"
-               id="CHATGPTBBFORUMBOT_field"
-               type="checkbox"
-               value="1"
-			<?php checked( CHATGPTBBFORUMBOT_is_addon_field_enabled() ); ?>
-        />
-        <label for="CHATGPTBBFORUMBOT_field">
-			<?php _e( 'Enable this option', 'chatgpt-bb-forum-bot' ); ?>
+        <div style="position: relative; display: inline-block;">
+            <input name="CHATGPTBBFORUMBOT_openai_assistant_id"
+                   id="CHATGPTBBFORUMBOT_openai_assistant_id"
+                   type="password"
+                   value="<?php echo esc_attr( $option ); ?>"
+                   style="padding-right: 30px;"
+            />
+            <span class="dashicons dashicons-visibility" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;" onclick="togglePasswordVisibility('CHATGPTBBFORUMBOT_openai_assistant_id')"></span>
+        </div>
+        <label for="CHATGPTBBFORUMBOT_openai_assistant_id">
+			<?php _e( 'Enter your OpenAI Assistant ID', 'chatgpt-bb-forum-bot' ); ?>
+        </label>
+		<?php
+	}
+}
+
+if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key' ) ) {
+	function CHATGPTBBFORUMBOT_settings_callback_openai_api_key() {
+		$option = get_option( 'CHATGPTBBFORUMBOT_openai_api_key', '' );
+		?>
+        <div style="position: relative; display: inline-block;">
+            <input name="CHATGPTBBFORUMBOT_openai_api_key"
+                   id="CHATGPTBBFORUMBOT_openai_api_key"
+                   type="password"
+                   value="<?php echo esc_attr( $option ); ?>"
+                   style="padding-right: 30px;"
+            />
+            <span class="dashicons dashicons-visibility" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;" onclick="togglePasswordVisibility('CHATGPTBBFORUMBOT_openai_api_key')"></span>
+        </div>
+        <label for="CHATGPTBBFORUMBOT_openai_api_key">
+			<?php _e( 'Enter your OpenAI API Key', 'chatgpt-bb-forum-bot' ); ?>
         </label>
 		<?php
 	}
