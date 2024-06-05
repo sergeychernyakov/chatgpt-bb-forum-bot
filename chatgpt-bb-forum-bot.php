@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: ChatGPT WP/BB Forum Bot
- * Description: ChatGPT BB Forum Bot plugin for Wordpress/BuddyBoss site.
+ * Description: ChatGPT BB Forum Bot plugin for WordPress/BuddyBoss site.
  * Author:      Sergey Chernyakov
  * Author URI:  https://github.com/sergeychernyakov
  * Version:     1.0.0
@@ -85,8 +85,8 @@ if ( ! class_exists( 'CHATGPT_BB_FORUM_BOT' ) ) {
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-            $this->define( 'CHATGPT_REPLY_INTERVAL_MIN', 2 ); // 1 minute in seconds
-            $this->define( 'CHATGPT_REPLY_INTERVAL_MAX', 2 * 2 ); // 360 minutes in seconds
+            $this->define( 'CHATGPT_REPLY_INTERVAL_MIN', 60 ); // 1 minutes in seconds
+            $this->define( 'CHATGPT_REPLY_INTERVAL_MAX', 360*60 ); // 360 minutes in seconds
             $this->define( 'CHATGPT_MODEL', 'gpt-4' );
             $this->define( 'CHATGPT_MAX_TOKENS', 150 );
             $this->define( 'CHATGPT_TEMPERATURE', 1 );
@@ -240,15 +240,6 @@ function get_openai_api_key() {
 }
 
 /**
- * Retrieve OpenAI Assistant ID from the settings
- *
- * @return string The OpenAI Assistant ID.
- */
-function get_openai_assistant_id() {
-    return get_option('CHATGPTBBFORUMBOT_openai_assistant_id', '');
-}
-
-/**
  * Generate a reply using ChatGPT
  *
  * @param string $prompt The prompt to send to ChatGPT.
@@ -293,24 +284,6 @@ function chatgpt_generate_reply($prompt, $content) {
     $response = json_decode($result, true);
 
     return $response['choices'][0]['message']['content'];
-}
-
-/**
- * Generate a reply using a user's ChatGPT Prompt
- *
- * @param string $content The content to include in the reply.
- * @param int $user_id The user ID.
- * @param string $prompt The ChatGPT prompt set by the user.
- * @return string The generated reply.
- */
-function generate_user_reply($content, $user_id, $prompt) {
-    if (!$prompt) {
-        return "This user has not set a ChatGPT prompt.";
-    }
-    $prompt .= "\nDiscussion reply: " . $content;
-
-    $reply = chatgpt_generate_reply($prompt, $content);
-    return $reply;
 }
 
 /**
@@ -410,7 +383,15 @@ function chatgpt_bb_generate_reply($args) {
         $chatgpt_prompt = get_user_meta($user->ID, 'chatgpt_prompt', true);
 
         if (!empty($chatgpt_prompt)) {
-            $reply_text = generate_user_reply($content, $user->ID, $chatgpt_prompt);
+
+            $forum_name = bbp_get_forum_title($forum_id);
+            $topic_name = bbp_get_topic_title($topic_id);
+            $topic_description = bbp_get_topic_content($topic_id);
+            $parent_replies = chatgpt_bb_get_parent_replies($reply_id);
+
+            $full_prompt = "Forum: $forum_name\nTopic: $topic_name\nDescription: $topic_description\nParent Replies: $parent_replies\n\nDiscussion reply: $content";
+
+            $reply_text = chatgpt_generate_reply($full_prompt, $content);
             chatgpt_bb_post_reply_scheduled(array(
                 'reply_id' => $reply_id,
                 'reply_text' => $reply_text,
@@ -422,6 +403,24 @@ function chatgpt_bb_generate_reply($args) {
     } else {
         $reply_text = "No suitable user found to generate a reply.";
     }
+}
+
+function chatgpt_bb_get_parent_replies($reply_id) {
+    $parent_replies = [];
+    $current_reply = bbp_get_reply($reply_id);
+
+    while ($current_reply && $current_reply->post_parent != 0) {
+        $parent_reply_id = get_post_meta($current_reply->ID, '_bbp_reply_to', true);
+        $parent_reply = bbp_get_reply($parent_reply_id);
+        if ($parent_reply) {
+            $parent_replies[] = $parent_reply->post_content;
+            $current_reply = $parent_reply;
+        } else {
+            break;
+        }
+    }
+
+    return implode("\n---\n", array_reverse($parent_replies));
 }
 
 add_action('bbp_new_reply', 'chatgpt_bb_schedule_reply_generation', 10, 5);

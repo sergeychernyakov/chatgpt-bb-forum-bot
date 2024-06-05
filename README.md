@@ -4,7 +4,7 @@
 
 # ChatGPT BB Forum Bot Plugin
 
-Welcome to the **ChatGPT BB Forum Bot Plugin** repository on GitHub. The ChatGPT BB Forum Bot Plugin is designed to automatically respond to new member introductions and discussion replies in your BuddyBoss/BuddyPress forums using OpenAI's GPT-4o API. This plugin helps create a more engaging and interactive community experience.
+Welcome to the **ChatGPT BB Forum Bot Plugin** repository on GitHub. The ChatGPT BB Forum Bot Plugin is designed to automatically respond to new member introductions and discussion replies in your BuddyBoss/BuddyPress forums using OpenAI's GPT-4 API. This plugin helps create a more engaging and interactive community experience.
 
 ## Features
 
@@ -12,6 +12,7 @@ Welcome to the **ChatGPT BB Forum Bot Plugin** repository on GitHub. The ChatGPT
 - Automatically replies to new discussion posts and replies.
 - Customizable ChatGPT prompts for each user.
 - Easy integration with BuddyBoss/BuddyPress platforms.
+- Includes context from parent replies for more coherent responses.
 
 ## Installation
 
@@ -34,13 +35,13 @@ Welcome to the **ChatGPT BB Forum Bot Plugin** repository on GitHub. The ChatGPT
 
 4. **Configure the Plugin:**
    - Go to the plugin settings page.
-   - Enter your OpenAI API key and Assistant ID.
+   - Enter your OpenAI API key.
 
 ## Configuration
 
-### OpenAI API Key and Assistant ID
+### OpenAI API Key
 
-To use this plugin, you need an OpenAI API key and Assistant ID. You can obtain these by signing up on the OpenAI platform.
+To use this plugin, you need an OpenAI API key. You can obtain this by signing up on the OpenAI platform.
 
 ### Custom User Prompts
 
@@ -58,7 +59,7 @@ The plugin listens for new introduction posts and automatically generates a repl
 
 ### Responding to Discussion Posts and Replies
 
-The plugin also listens for new discussion posts and replies, generating responses to keep the conversation active and engaging.
+The plugin also listens for new discussion posts and replies, generating responses to keep the conversation active and engaging. It includes context from parent replies to ensure more coherent and relevant responses.
 
 ## Development
 
