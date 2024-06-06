@@ -85,8 +85,8 @@ if ( ! class_exists( 'CHATGPT_BB_FORUM_BOT' ) ) {
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-            $this->define( 'CHATGPT_REPLY_INTERVAL_MIN', 60 ); // 1 minutes in seconds
-            $this->define( 'CHATGPT_REPLY_INTERVAL_MAX', 360*60 ); // 360 minutes in seconds
+            $this->define( 'CHATGPT_REPLY_INTERVAL_MIN', 2 ); // 1 minutes in seconds
+            $this->define( 'CHATGPT_REPLY_INTERVAL_MAX', 2*2 ); // 360 minutes in seconds
             $this->define( 'CHATGPT_MODEL', 'gpt-4' );
             $this->define( 'CHATGPT_MAX_TOKENS', 150 );
             $this->define( 'CHATGPT_TEMPERATURE', 1 );
@@ -230,68 +230,20 @@ if ( ! class_exists( 'CHATGPT_BB_FORUM_BOT' ) ) {
     add_action('edit_user_profile_update', array('CHATGPTBBFORUMBOT_BB_Platform_Addon', 'chatgpt_bb_save_prompt_field'));
 }
 
-/**
- * Retrieve OpenAI API key from the settings
- *
- * @return string The OpenAI API key.
- */
-function get_openai_api_key() {
-    return get_option('CHATGPTBBFORUMBOT_openai_api_key', '');
-}
 
-/**
- * Generate a reply using ChatGPT
- *
- * @param string $prompt The prompt to send to ChatGPT.
- * @param string $content The content to include in the reply.
- * @return string The generated reply.
- */
-function chatgpt_generate_reply($prompt, $content) {
-    $api_key = get_openai_api_key();
-    $model = CHATGPT_MODEL;
-    $url = 'https://api.openai.com/v1/chat/completions';
 
-    $data = array(
-        'model' => $model,
-        'messages' => array(
-            array(
-                'role' => 'system',
-                'content' => $prompt
-            ),
-            array(
-                'role' => 'user',
-                'content' => $content
-            )
-        ),
-        'max_tokens' => CHATGPT_MAX_TOKENS,
-        'temperature' => CHATGPT_TEMPERATURE,
-    );
 
-    $options = array(
-        'http' => array(
-            'header' => "Content-Type: application/json\r\n" .
-                        "Authorization: Bearer $api_key\r\n",
-            'method' => 'POST',
-            'content' => json_encode($data),
-        ),
-    );
 
-    $context = stream_context_create($options);
-    $result = file_get_contents($url, false, $context);
-    if ($result === FALSE) { 
-        return "Error in generating reply.";
-    }
-    $response = json_decode($result, true);
 
-    return $response['choices'][0]['message']['content'];
-}
+
+// Reply to the new replies to the ChetGPT users
 
 /**
  * Post the reply at the scheduled time
  *
  * @param array $args The arguments for posting the reply.
  */
-function chatgpt_bb_post_reply_scheduled($args) {
+function chatgpt_bb_post_reply($args) {
     $reply_id = $args['reply_id'];
     $reply_text = $args['reply_text'];
     $user_id = $args['user_id'];
@@ -327,84 +279,6 @@ function chatgpt_bb_post_reply_scheduled($args) {
     }
 }
 
-/**
- * Schedule the reply generation
- *
- * @param int $reply_id The ID of the original reply.
- * @param int $topic_id The ID of the topic.
- * @param int $forum_id The ID of the forum.
- * @param array $anonymous_data The anonymous data.
- * @param int $reply_author The ID of the reply author.
- */
-function chatgpt_bb_schedule_reply_generation($reply_id, $topic_id, $forum_id, $anonymous_data, $reply_author) {
-
-    // Schedule the event to handle the reply generation
-    $interval = rand(CHATGPT_REPLY_INTERVAL_MIN, CHATGPT_REPLY_INTERVAL_MAX); // Random interval between defined min and max
-    $timestamp = time() + $interval;
-
-    $args = array(
-        'reply_id' => $reply_id,
-        'topic_id' => $topic_id,
-        'forum_id' => $forum_id,
-        'reply_author' => $reply_author
-    );
-
-    wp_schedule_single_event($timestamp, 'chatgpt_bb_generate_reply_event', array($args));
-}
-
-/**
- * Generate and post the reply using ChatGPT
- *
- * @param array $args The arguments for generating the reply.
- */
-function chatgpt_bb_generate_reply($args) {
-    $reply_id = $args['reply_id'];
-    $topic_id = $args['topic_id'];
-    $forum_id = $args['forum_id'];
-    $reply_author = $args['reply_author'];
-
-    // Exclude replies from ChatGPT user and user doesn't answer on his own replies
-    $reply = bbp_get_reply($reply_id);
-    $content = $reply->post_content;
-
-    // Custom query to get a random user with a non-empty chatgpt_prompt, excluding the reply author
-    $user_query = new WP_User_Query(array(
-        'meta_key' => 'chatgpt_prompt',
-        'meta_value' => '',
-        'meta_compare' => '!=',
-        'orderby' => 'rand',
-        'exclude' => array($reply_author) // Exclude the reply author
-    ));
-
-    $users = $user_query->get_results(); // Get users with a non-empty chatgpt_prompt
-
-    if (!empty($users)) {
-        $user = $users[array_rand($users)];
-        $chatgpt_prompt = get_user_meta($user->ID, 'chatgpt_prompt', true);
-
-        if (!empty($chatgpt_prompt)) {
-
-            $forum_name = bbp_get_forum_title($forum_id);
-            $topic_name = bbp_get_topic_title($topic_id);
-            $topic_description = bbp_get_topic_content($topic_id);
-            $parent_replies = chatgpt_bb_get_parent_replies($reply_id);
-
-            $full_prompt = "Forum: $forum_name\nTopic: $topic_name\nDescription: $topic_description\nParent Replies: $parent_replies\n\nDiscussion reply: $content";
-
-            $reply_text = chatgpt_generate_reply($full_prompt, $content);
-            chatgpt_bb_post_reply_scheduled(array(
-                'reply_id' => $reply_id,
-                'reply_text' => $reply_text,
-                'user_id' => $user->ID
-            ));
-        } else {
-            $reply_text = "This user has not set a ChatGPT prompt.";
-        }
-    } else {
-        $reply_text = "No suitable user found to generate a reply.";
-    }
-}
-
 function chatgpt_bb_get_parent_replies($reply_id) {
     $parent_replies = [];
     $current_reply = bbp_get_reply($reply_id);
@@ -423,61 +297,199 @@ function chatgpt_bb_get_parent_replies($reply_id) {
     return implode("\n---\n", array_reverse($parent_replies));
 }
 
+/**
+ * Generate and post the reply using ChatGPT
+ *
+ * @param array $args The arguments for generating the reply.
+ */
+function chatgpt_bb_generate_reply($args) {
+    $reply_id = $args['reply_id'];
+    $topic_id = $args['topic_id'];
+    $forum_id = $args['forum_id'];
+    $reply_author = $args['reply_author'];
+    $parent_reply_author_id = $args['parent_reply_author_id'];
+
+    // Exclude replies from ChatGPT user and user doesn't answer on his own replies
+    $reply = bbp_get_reply($reply_id);
+    $content = $reply->post_content;
+
+    $forum_name = bbp_get_forum_title($forum_id);
+    $topic_name = bbp_get_topic_title($topic_id);
+    $topic_description = bbp_get_topic_content($topic_id);
+    $parent_replies = chatgpt_bb_get_parent_replies($reply_id);
+
+    $full_prompt = "Forum: $forum_name\nTopic: $topic_name\nDescription: $topic_description\nParent Replies: $parent_replies";
+
+    $reply_text = chatgpt_generate_reply($full_prompt, $content);
+    chatgpt_bb_post_reply(array(
+        'reply_id' => $reply_id,
+        'reply_text' => $reply_text,
+        'user_id' => $parent_reply_author_id
+    ));
+}
+
+/**
+ * Schedule the reply generation
+ *
+ * @param int $reply_id The ID of the original reply.
+ * @param int $topic_id The ID of the topic.
+ * @param int $forum_id The ID of the forum.
+ * @param array $anonymous_data The anonymous data.
+ * @param int $reply_author The ID of the reply author.
+ */
+function chatgpt_bb_schedule_reply_generation($reply_id, $topic_id, $forum_id, $anonymous_data, $reply_author) {
+    // Get the parent reply
+    $parent_reply_id = bbp_get_reply_to($reply_id);
+
+    // If there isn't a parent reply, return
+    if (empty($parent_reply_id)) {
+        return;
+    }
+
+    // Get the parent reply author ID
+    $parent_reply = bbp_get_reply($parent_reply_id);
+    $parent_reply_author_id = $parent_reply->post_author;
+
+    // Check if the parent reply author has a chatgpt_prompt
+    $chatgpt_prompt = get_user_meta($parent_reply_author_id, 'chatgpt_prompt', true);
+
+    if (empty($chatgpt_prompt)) {
+        // Do nothing if the parent reply author does not have a chatgpt_prompt
+        return;
+    }
+
+    // Schedule the event to handle the reply generation
+    $interval = rand(CHATGPT_REPLY_INTERVAL_MIN, CHATGPT_REPLY_INTERVAL_MAX); // Random interval between defined min and max
+    $timestamp = time() + $interval;
+
+    $args = array(
+        'reply_id' => $reply_id,
+        'topic_id' => $topic_id,
+        'forum_id' => $forum_id,
+        'reply_author' => $reply_author,
+        'parent_reply_author_id' => $parent_reply_author_id,
+    );
+
+    wp_schedule_single_event($timestamp, 'chatgpt_bb_generate_reply_event', array($args));
+}
+
 add_action('bbp_new_reply', 'chatgpt_bb_schedule_reply_generation', 10, 5);
 add_action('chatgpt_bb_generate_reply_event', 'chatgpt_bb_generate_reply');
 
-// Hook testing functions
+// *** Reply to the new discussion in the Invitations forum ***
 
-// function test_bbp_new_reply($reply_id, $topic_id, $forum_id, $anonymous_data, $reply_author) {
-//     $reply = bbp_get_reply($reply_id);
-//     $reply_content = $reply->post_content;
-//     trigger_error("Hook: bbp_new_reply, Params: reply_id = $reply_id, topic_id = $topic_id, forum_id = $forum_id, reply_author = $reply_author, reply_content = $reply_content", E_USER_ERROR);
-// }
+/**
+ * Generate and post the reply using ChatGPT
+ *
+ * @param array $args The arguments for generating the reply to new topic.
+ */
+function chatgpt_bb_generate_reply_to_new_topic($args) {
+    $topic_id = $args['topic_id'];
+    $forum_id = $args['forum_id'];
 
-// function test_bbp_new_reply_pre_extras($reply_id, $reply) {
-//     trigger_error("Hook: bbp_new_reply_pre_extras, Params: reply_id = $reply_id", E_USER_ERROR);
-// }
+    // Get the topic details
+    $topic = bbp_get_topic($topic_id);
+    $content = $topic->post_content;
+    $topic_author_id = $topic->post_author;
 
-// function test_bbp_new_forum_post_extras($post_id) {
-//     trigger_error("Hook: bbp_new_forum_post_extras, Params: post_id = $post_id", E_USER_ERROR);
-// }
+    // Custom query to get users with a non-empty chatgpt_prompt, excluding the topic author
+    $user_query = new WP_User_Query(array(
+        'meta_key' => 'chatgpt_prompt',
+        'meta_value' => '',
+        'meta_compare' => '!=',
+        'orderby' => 'rand',
+        'exclude' => array($topic_author_id) // Exclude the topic author
+    ));
 
-// function test_bbp_new_reply_post_extras($reply_id, $reply) {
-//     trigger_error("Hook: bbp_new_reply_post_extras, Params: reply_id = $reply_id", E_USER_ERROR);
-// }
+    $users = $user_query->get_results(); // Get users with a non-empty chatgpt_prompt
 
-// function test_bbp_new_topic_pre_extras($topic_id) {
-//     trigger_error("Hook: bbp_new_topic_pre_extras, Params: topic_id = $topic_id", E_USER_ERROR);
-// }
+    if (!empty($users)) {
+        foreach ($users as $user) {
+            $chatgpt_prompt = get_user_meta($user->ID, 'chatgpt_prompt', true);
 
-// function test_bp_activity_add($activity) {
-//     trigger_error("Hook: bp_activity_add, Params: activity = " . print_r($activity, true), E_USER_ERROR);
-// }
+            if (!empty($chatgpt_prompt)) {
+                $forum_name = bbp_get_forum_title($forum_id);
+                $topic_name = bbp_get_topic_title($topic_id);
+                $topic_description = bbp_get_topic_content($topic_id);
 
-// function test_bp_activity_posted_update($content, $user_id, $activity_id) {
-//     trigger_error("Hook: bp_activity_posted_update, Params: content = $content, user_id = $user_id, activity_id = $activity_id", E_USER_ERROR);
-// }
+                $full_prompt = "Forum: $forum_name\nTopic: $topic_name\nDescription: $topic_description\n\nDiscussion reply: $content";
 
-// function test_bp_activity_comment_posted($comment_id, $params) {
-//     trigger_error("Hook: bp_activity_comment_posted, Params: comment_id = $comment_id, params = " . print_r($params, true), E_USER_ERROR);
-// }
+                $reply_text = chatgpt_generate_reply($chatgpt_prompt, $content);
+                chatgpt_bb_post_reply_to_new_topic(array(
+                    'topic_id' => $topic_id,
+                    'reply_text' => $reply_text,
+                    'user_id' => $user->ID
+                ));
+            } else {
+                $reply_text = "This user has not set a ChatGPT prompt.";
+            }
+        }
+    } else {
+        $reply_text = "No suitable user found to generate a reply.";
+    }
+}
 
-// function test_bp_blogs_new_blog_post($blog_id, $post_id) {
-//     trigger_error("Hook: bp_blogs_new_blog_post, Params: blog_id = $blog_id, post_id = $post_id", E_USER_ERROR);
-// }
+/**
+ * Post the reply to a new topic
+ *
+ * @param array $args The arguments for posting the reply.
+ */
+function chatgpt_bb_post_reply_to_new_topic($args) {
+    $topic_id = $args['topic_id'];
+    $reply_text = $args['reply_text'];
+    $user_id = $args['user_id'];
 
-// function test_bp_activity_post_type_published($activity_object) {
-//     trigger_error("Hook: bp_activity_post_type_published, Params: activity_object = " . print_r($activity_object, true), E_USER_ERROR);
-// }
+    // Prepare the data for the new reply
+    $reply_data = array(
+        'post_parent'    => $topic_id, // Set the parent to the topic ID
+        'post_status'    => 'publish',
+        'post_type'      => bbp_get_reply_post_type(),
+        'post_author'    => $user_id,
+        'post_content'   => $reply_text,
+    );
 
-// Add hooks for testing
-// add_action('bbp_new_reply', 'test_bbp_new_reply', 10, 5);
-# add_action('bbp_new_reply_pre_extras', 'test_bbp_new_reply_pre_extras', 10, 2);
-// add_action('bbp_new_forum_post_extras', 'test_bbp_new_forum_post_extras', 10, 1);
-// add_action('bbp_new_reply_post_extras', 'test_bbp_new_reply_post_extras', 10, 2);
-// add_action('bbp_new_topic_pre_extras', 'test_bbp_new_topic_pre_extras', 10, 2);
-# add_action('bp_activity_add', 'test_bp_activity_add', 10, 2);
-// add_action('bp_activity_posted_update', 'test_bp_activity_posted_update', 10, 3);
-// add_action('bp_activity_comment_posted', 'test_bp_activity_comment_posted', 10, 2);
-// add_action('bp_blogs_new_blog_post', 'test_bp_blogs_new_blog_post', 10, 2);
-// add_action('bp_activity_post_type_published', 'test_bp_activity_post_type_published', 10, 1);
+    $reply_meta = array(
+        'author_ip' => bbp_current_author_ip(),
+        'forum_id'  => bbp_get_topic_forum_id($topic_id),
+        'topic_id'  => $topic_id,
+    );
+
+    // Insert the reply
+    $new_reply_id = bbp_insert_reply($reply_data, $reply_meta);
+
+    // If the reply was successfully created, update the topic and forum
+    if ($new_reply_id) {
+        bbp_update_topic($topic_id);
+        bbp_update_forum($reply_meta['forum_id']);
+    }
+}
+
+/**
+* Schedule the reply generation
+*
+* @param int $topic_id The ID of the topic.
+* @param int $forum_id The ID of the forum.
+*/
+function chatgpt_bb_schedule_reply_to_new_topic_generation($topic_id, $forum_id) {
+    // Get the selected forum from the settings
+    $selected_forum = get_option('CHATGPTBBFORUMBOT_selected_forum');
+
+    // Check if the new topic is in the selected forum
+    if ($forum_id != $selected_forum) {
+        return;
+    }
+
+    // Schedule the event to handle the reply generation
+    $interval = rand(CHATGPT_REPLY_INTERVAL_MIN, CHATGPT_REPLY_INTERVAL_MAX); // Random interval between defined min and max
+    $timestamp = time() + $interval;
+
+    $args = array(
+        'topic_id' => $topic_id,
+        'forum_id' => $forum_id
+    );
+
+    wp_schedule_single_event($timestamp, 'chatgpt_bb_generate_reply_to_new_topic_event', array($args));
+}
+
+add_action('bbp_new_topic', 'chatgpt_bb_schedule_reply_to_new_topic_generation', 10, 2);
+add_action('chatgpt_bb_generate_reply_to_new_topic_event', 'chatgpt_bb_generate_reply_to_new_topic');

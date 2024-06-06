@@ -42,21 +42,27 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_fields_for_section' ) ) 
 }
 
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_fields' ) ) {
-    function CHATGPTBBFORUMBOT_get_settings_fields() {
+	function CHATGPTBBFORUMBOT_get_settings_fields() {
 
-        $fields = array();
+			$fields = array();
 
-        $fields['CHATGPTBBFORUMBOT_settings_section'] = array(
-            'CHATGPTBBFORUMBOT_openai_api_key' => array(
-                'title'             => __( 'OpenAI API Key', 'chatgpt-bb-forum-bot' ),
-                'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key',
-                'sanitize_callback' => 'sanitize_text_field',
-                'args'              => array(),
-            ),
-        );
+			$fields['CHATGPTBBFORUMBOT_settings_section'] = array(
+					'CHATGPTBBFORUMBOT_openai_api_key' => array(
+							'title'             => __( 'OpenAI API Key', 'chatgpt-bb-forum-bot' ),
+							'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key',
+							'sanitize_callback' => 'sanitize_text_field',
+							'args'              => array(),
+					),
+					'CHATGPTBBFORUMBOT_selected_forum' => array(
+							'title'             => __( 'Select Introduction Forum', 'chatgpt-bb-forum-bot' ),
+							'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_selected_forum',
+							'sanitize_callback' => 'sanitize_text_field',
+							'args'              => array(),
+					),
+			);
 
-        return (array) apply_filters( 'CHATGPTBBFORUMBOT_get_settings_fields', $fields );
-    }
+			return (array) apply_filters( 'CHATGPTBBFORUMBOT_get_settings_fields', $fields );
+	}
 }
 
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key' ) ) {
@@ -77,6 +83,29 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key' ) )
         </label>
         <?php
     }
+}
+
+if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_selected_forum' ) ) {
+	function CHATGPTBBFORUMBOT_settings_callback_selected_forum() {
+			$selected_forum = get_option( 'CHATGPTBBFORUMBOT_selected_forum', '' );
+			$forums = get_posts(array(
+					'post_type' => 'forum',
+					'posts_per_page' => -1,
+					'post_status' => 'publish',
+			));
+			?>
+			<select name="CHATGPTBBFORUMBOT_selected_forum">
+					<?php foreach ( $forums as $forum ) : ?>
+							<option value="<?php echo esc_attr( $forum->ID ); ?>" <?php selected( $selected_forum, $forum->ID ); ?>>
+									<?php echo esc_html( $forum->post_title ); ?>
+							</option>
+					<?php endforeach; ?>
+			</select>
+			<label for="CHATGPTBBFORUMBOT_selected_forum">
+					<?php _e( 'Select the forum for ChatGPT responses', 'chatgpt-bb-forum-bot' ); ?>
+			</label>
+			<?php
+	}
 }
 
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_is_addon_field_enabled' ) ) {
@@ -126,3 +155,60 @@ function CHATGPTBBFORUMBOT_register_integration() {
     buddypress()->integrations['addon'] = new CHATGPTBBFORUMBOT_BuddyBoss_Integration();
 }
 add_action( 'bp_setup_integrations', 'CHATGPTBBFORUMBOT_register_integration' );
+
+/**
+ * Retrieve OpenAI API key from the settings
+ *
+ * @return string The OpenAI API key.
+ */
+function get_openai_api_key() {
+	return get_option('CHATGPTBBFORUMBOT_openai_api_key', '');
+}
+
+/**
+ * Generate a reply using ChatGPT
+ *
+ * @param string $prompt The prompt to send to ChatGPT.
+ * @param string $content The content to include in the reply.
+ * @return string The generated reply.
+ */
+function chatgpt_generate_reply($prompt, $content) {
+	$api_key = get_openai_api_key();
+	$model = CHATGPT_MODEL;
+	$url = 'https://api.openai.com/v1/chat/completions';
+
+	$data = array(
+			'model' => $model,
+			'messages' => array(
+					array(
+							'role' => 'system',
+							'content' => $prompt
+					),
+					array(
+							'role' => 'user',
+							'content' => $content
+					)
+			),
+			'max_tokens' => CHATGPT_MAX_TOKENS,
+			'temperature' => CHATGPT_TEMPERATURE,
+	);
+
+	$options = array(
+			'http' => array(
+					'header' => "Content-Type: application/json\r\n" .
+											"Authorization: Bearer $api_key\r\n",
+					'method' => 'POST',
+					'content' => json_encode($data),
+			),
+	);
+
+	$context = stream_context_create($options);
+	$result = file_get_contents($url, false, $context);
+	if ($result === FALSE) { 
+			return "Error in generating reply.";
+	}
+	$response = json_decode($result, true);
+
+	return $response['choices'][0]['message']['content'];
+}
+
