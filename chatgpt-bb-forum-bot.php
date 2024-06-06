@@ -78,8 +78,8 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-            $this->define( 'CHATGPT_REPLY_INTERVAL_MIN', 2 ); // 1 minutes in seconds
-            $this->define( 'CHATGPT_REPLY_INTERVAL_MAX', 2*2 ); // 360 minutes in seconds
+            $this->define( 'CHATGPT_REPLY_INTERVAL_MIN', 60 ); // 1 minute in seconds
+            $this->define( 'CHATGPT_REPLY_INTERVAL_MAX', 72 * 60 * 60 ); // 72 hours in seconds
             $this->define( 'CHATGPT_MODEL', 'gpt-4' );
             $this->define( 'CHATGPT_MAX_TOKENS', 150 );
             $this->define( 'CHATGPT_TEMPERATURE', 1 );

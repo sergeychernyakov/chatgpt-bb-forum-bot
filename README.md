@@ -1,3 +1,5 @@
+Sure! Here's the updated `README.md` file based on the changes to the plugin code:
+
 <p align="center">
 <a href="https://www.buddyboss.com/"><img src="https://github.com/buddyboss/chatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
 </p>
