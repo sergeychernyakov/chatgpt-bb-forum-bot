@@ -78,10 +78,10 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
             $this->define( 'CHATGPTBBFORUMBOT_BB_ADDON_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-            $this->define( 'CHATGPT_REPLY_INTERVAL_MIN_HOURS', 1); // 1 hour
-            $this->define( 'CHATGPT_REPLY_INTERVAL_MAX_HOURS', 72); // 72 hours
-            $this->define( 'CHATGPT_MODEL', 'gpt-4' );
-            $this->define( 'CHATGPT_MAX_TOKENS', 150 );
+            $this->define( 'CHATGPT_REPLY_INTERVAL_MIN_HOURS', 1 ); // 1 hour
+            $this->define( 'CHATGPT_REPLY_INTERVAL_MAX_HOURS', 72 ); // 72 hours
+            $this->define( 'CHATGPT_MODEL', 'gpt-4o' );
+            $this->define( 'CHATGPT_MAX_TOKENS', 200 );
             $this->define( 'CHATGPT_TEMPERATURE', 1 );
         }
 
@@ -318,12 +318,17 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             $reply = bbp_get_reply($reply_id);
             $content = $reply->post_content;
 
+            // Get the post author username to mention in the reply
+            $author_id = $reply->post_author;
+            $author_user = get_userdata($author_id);
+            $author_username = $author_user->user_login;
+
             $forum_name = bbp_get_forum_title($forum_id);
             $topic_name = bbp_get_topic_title($topic_id);
             $topic_description = bbp_get_topic_content($topic_id);
             $parent_replies = self::chatgpt_bb_get_parent_replies($reply_id);
 
-            $full_prompt = "Yor character: $chatgpt_prompt\n\nForum name: $forum_name\nTopic: $topic_name\nnTopic description: $topic_description\nParent Replies: $parent_replies";
+            $full_prompt = "Your character: $chatgpt_prompt\n\nForum name: $forum_name\nTopic: $topic_name\nTopic description: $topic_description\nParent Replies: $parent_replies\n\nReply to: @$author_username:";
 
             $reply_text = self::chatgpt_generate_reply($full_prompt, $content);
 
@@ -402,6 +407,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
 
             $content = $topic->post_content;
             $topic_author_id = $topic->post_author;
+            $author_username = get_userdata($topic_author_id)->user_login;
 
             // Custom query to get users with a non-empty chatgpt_prompt, excluding the topic author
             $user_query = new WP_User_Query(array(
@@ -423,7 +429,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
                         $topic_name = bbp_get_topic_title($topic_id);
                         $topic_description = bbp_get_topic_content($topic_id);
 
-                        $full_prompt = "Yor character: $chatgpt_prompt\n\nForum name: $forum_name\nTopic: $topic_name\nnTopic description: $topic_description";
+                        $full_prompt = "Your character: $chatgpt_prompt\n\nForum name: $forum_name\nTopic: $topic_name\nTopic description: $topic_description\n\nTopic author: @$author_username";
 
                         $reply_text = self::chatgpt_generate_reply($full_prompt, $content);
 

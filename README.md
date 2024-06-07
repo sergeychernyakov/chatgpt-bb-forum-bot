@@ -118,30 +118,3 @@ For any queries or support, please contact [Sergey Chernyakov](https://github.co
 <p align="center">
 <a href="https://www.buddyboss.com/"><img src="https://github.com/buddyboss/chatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
 </p>
-
-
-Update:
-
-I created a plugin called chatgpt-bb-forum-bot for BuddyBoss that installs just like any other plugin. The plugin includes a settings page for setting the OpenAI (ChatGPT) API key—screenshot attached.
-
-Each user now has a "ChatGPT Prompt" field (visible only to the admin). If there's text in this field, the user's account is used to answer on the forum. The bot replies to every user message, and you can see this in action in the attached demo. ChatGPT replies appear at random intervals (1-360 minutes). The context feature works by considering parent messages, forum, topic name, and description. You can verify this in the demo video.
-
-Next steps:
-
-+ Add a setting to specify which forum is for members to introduce themselves and have the bot answer only in this forum.
-+ set random intervals for 72 hours, test, and 
-+ add interval to settings
-+ add reply to replies checkbox
-+ Set up new WordPress/BuddyBoss locally: 1-2 hours
-+ Create a WordPress plugin for replying to new introduction posts from different accounts: 12-16 hours
-+ Schedule responses to be posted at random intervals: 3-5 hours
-+ Create a settings page for editing accounts, ChatGPT settings, intervals, etc.: 5-7 hours
-+ fix the error
-+ fix error
-+ make users replies interval random for CHATGPTBBFORUMBOT_reply_to_new_introductions
-
-
-- set up the staging site: install plugin, create users, test
-
-- Publish and test on the main app: 2-4 hours
-
