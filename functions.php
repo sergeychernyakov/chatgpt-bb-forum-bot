@@ -14,7 +14,6 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_admin_enqueue_script' ) ) {
 
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_sections' ) ) {
     function CHATGPTBBFORUMBOT_get_settings_sections() {
-
         $settings = array(
             'CHATGPTBBFORUMBOT_settings_section' => array(
                 'page'  => 'addon',
@@ -28,7 +27,6 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_sections' ) ) {
 
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_fields_for_section' ) ) {
     function CHATGPTBBFORUMBOT_get_settings_fields_for_section( $section_id = '' ) {
-
         // Bail if section is empty
         if ( empty( $section_id ) ) {
             return false;
@@ -42,27 +40,50 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_fields_for_section' ) ) 
 }
 
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_fields' ) ) {
-	function CHATGPTBBFORUMBOT_get_settings_fields() {
+    function CHATGPTBBFORUMBOT_get_settings_fields() {
+        $fields = array();
 
-			$fields = array();
+        $fields['CHATGPTBBFORUMBOT_settings_section'] = array(
+            'CHATGPTBBFORUMBOT_openai_api_key' => array(
+                'title'             => __( 'OpenAI API Key', 'chatgpt-bb-forum-bot' ),
+                'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key',
+                'sanitize_callback' => 'sanitize_text_field',
+                'args'              => array(),
+            ),
+            'CHATGPTBBFORUMBOT_selected_forum' => array(
+                'title'             => __( 'Select Introduction Forum', 'chatgpt-bb-forum-bot' ),
+                'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_selected_forum',
+                'sanitize_callback' => 'sanitize_text_field',
+                'args'              => array(),
+            ),
+            'CHATGPTBBFORUMBOT_reply_interval_min_hours' => array(
+                'title'             => __( 'Reply Interval Min (hours)', 'chatgpt-bb-forum-bot' ),
+                'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_reply_interval_min_hours',
+                'sanitize_callback' => 'floatval',
+                'args'              => array(),
+            ),
+            'CHATGPTBBFORUMBOT_reply_interval_max_hours' => array(
+                'title'             => __( 'Reply Interval Max (hours)', 'chatgpt-bb-forum-bot' ),
+                'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_reply_interval_max_hours',
+                'sanitize_callback' => 'floatval',
+                'args'              => array(),
+            ),
+            'CHATGPTBBFORUMBOT_reply_to_direct_replies' => array(
+                'title'             => __( 'Reply to Direct Replies', 'chatgpt-bb-forum-bot' ),
+                'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_reply_to_direct_replies',
+                'sanitize_callback' => 'sanitize_text_field',
+                'args'              => array(),
+            ),
+            'CHATGPTBBFORUMBOT_reply_to_new_introductions' => array(
+                'title'             => __( 'Reply to New Introductions', 'chatgpt-bb-forum-bot' ),
+                'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_reply_to_new_introductions',
+                'sanitize_callback' => 'sanitize_text_field',
+                'args'              => array(),
+            ),
+        );
 
-			$fields['CHATGPTBBFORUMBOT_settings_section'] = array(
-					'CHATGPTBBFORUMBOT_openai_api_key' => array(
-							'title'             => __( 'OpenAI API Key', 'chatgpt-bb-forum-bot' ),
-							'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key',
-							'sanitize_callback' => 'sanitize_text_field',
-							'args'              => array(),
-					),
-					'CHATGPTBBFORUMBOT_selected_forum' => array(
-							'title'             => __( 'Select Introduction Forum', 'chatgpt-bb-forum-bot' ),
-							'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_selected_forum',
-							'sanitize_callback' => 'sanitize_text_field',
-							'args'              => array(),
-					),
-			);
-
-			return (array) apply_filters( 'CHATGPTBBFORUMBOT_get_settings_fields', $fields );
-	}
+        return (array) apply_filters( 'CHATGPTBBFORUMBOT_get_settings_fields', $fields );
+    }
 }
 
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key' ) ) {
@@ -86,26 +107,94 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key' ) )
 }
 
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_selected_forum' ) ) {
-	function CHATGPTBBFORUMBOT_settings_callback_selected_forum() {
-			$selected_forum = get_option( 'CHATGPTBBFORUMBOT_selected_forum', '' );
-			$forums = get_posts(array(
-					'post_type' => 'forum',
-					'posts_per_page' => -1,
-					'post_status' => 'publish',
-			));
-			?>
-			<select name="CHATGPTBBFORUMBOT_selected_forum">
-					<?php foreach ( $forums as $forum ) : ?>
-							<option value="<?php echo esc_attr( $forum->ID ); ?>" <?php selected( $selected_forum, $forum->ID ); ?>>
-									<?php echo esc_html( $forum->post_title ); ?>
-							</option>
-					<?php endforeach; ?>
-			</select>
-			<label for="CHATGPTBBFORUMBOT_selected_forum">
-					<?php _e( 'Select the forum for ChatGPT responses', 'chatgpt-bb-forum-bot' ); ?>
-			</label>
-			<?php
-	}
+    function CHATGPTBBFORUMBOT_settings_callback_selected_forum() {
+        $selected_forum = get_option( 'CHATGPTBBFORUMBOT_selected_forum', '' );
+        $forums = get_posts(array(
+            'post_type' => 'forum',
+            'posts_per_page' => -1,
+            'post_status' => 'publish',
+        ));
+        ?>
+        <select name="CHATGPTBBFORUMBOT_selected_forum">
+            <?php foreach ( $forums as $forum ) : ?>
+                <option value="<?php echo esc_attr( $forum->ID ); ?>" <?php selected( $selected_forum, $forum->ID ); ?>>
+                    <?php echo esc_html( $forum->post_title ); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <label for="CHATGPTBBFORUMBOT_selected_forum">
+            <?php _e( 'Select the forum for ChatGPT responses', 'chatgpt-bb-forum-bot' ); ?>
+        </label>
+        <?php
+    }
+}
+
+if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_reply_interval_min_hours' ) ) {
+    function CHATGPTBBFORUMBOT_settings_callback_reply_interval_min_hours() {
+        $option = get_option( 'CHATGPTBBFORUMBOT_reply_interval_min_hours', 1 );
+        ?>
+        <input name="CHATGPTBBFORUMBOT_reply_interval_min_hours"
+               id="CHATGPTBBFORUMBOT_reply_interval_min_hours"
+               type="number"
+               step="0.01"
+               value="<?php echo esc_attr( $option ); ?>"
+        />
+        <label for="CHATGPTBBFORUMBOT_reply_interval_min_hours">
+            <?php _e( 'Set the minimum interval for replies in hours', 'chatgpt-bb-forum-bot' ); ?>
+        </label>
+        <?php
+    }
+}
+
+if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_reply_interval_max_hours' ) ) {
+    function CHATGPTBBFORUMBOT_settings_callback_reply_interval_max_hours() {
+        $option = get_option( 'CHATGPTBBFORUMBOT_reply_interval_max_hours', CHATGPT_REPLY_INTERVAL_MAX_HOURS );
+        ?>
+        <input name="CHATGPTBBFORUMBOT_reply_interval_max_hours"
+               id="CHATGPTBBFORUMBOT_reply_interval_max_hours"
+               type="number"
+               step="0.01"
+               value="<?php echo esc_attr( $option ); ?>"
+        />
+        <label for="CHATGPTBBFORUMBOT_reply_interval_max_hours">
+            <?php _e( 'Set the maximum interval for replies in hours', 'chatgpt-bb-forum-bot' ); ?>
+        </label>
+        <?php
+    }
+}
+
+if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_reply_to_direct_replies' ) ) {
+    function CHATGPTBBFORUMBOT_settings_callback_reply_to_direct_replies() {
+        $option = get_option( 'CHATGPTBBFORUMBOT_reply_to_direct_replies', '1' );
+        ?>
+        <input name="CHATGPTBBFORUMBOT_reply_to_direct_replies"
+               id="CHATGPTBBFORUMBOT_reply_to_direct_replies"
+               type="checkbox"
+               value="1"
+               <?php checked( '1', $option ); ?>
+        />
+        <label for="CHATGPTBBFORUMBOT_reply_to_direct_replies">
+            <?php _e( 'Reply to Direct Replies', 'chatgpt-bb-forum-bot' ); ?>
+        </label>
+        <?php
+    }
+}
+
+if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_reply_to_new_introductions' ) ) {
+    function CHATGPTBBFORUMBOT_settings_callback_reply_to_new_introductions() {
+        $option = get_option( 'CHATGPTBBFORUMBOT_reply_to_new_introductions', '1' );
+        ?>
+        <input name="CHATGPTBBFORUMBOT_reply_to_new_introductions"
+               id="CHATGPTBBFORUMBOT_reply_to_new_introductions"
+               type="checkbox"
+               value="1"
+               <?php checked( '1', $option ); ?>
+        />
+        <label for="CHATGPTBBFORUMBOT_reply_to_new_introductions">
+            <?php _e( 'Reply to New Introductions', 'chatgpt-bb-forum-bot' ); ?>
+        </label>
+        <?php
+    }
 }
 
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_is_addon_field_enabled' ) ) {
