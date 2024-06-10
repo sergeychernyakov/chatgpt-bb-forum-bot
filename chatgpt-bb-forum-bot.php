@@ -420,6 +420,10 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
 
             $users = $user_query->get_results(); // Get users with a non-empty chatgpt_prompt
 
+            // Shuffle the users array and pick 2-4 random users
+            shuffle($users);
+            $users = array_slice($users, 0, rand(2, 4));
+
             if (!empty($users)) {
                 foreach ($users as $user) {
                     $chatgpt_prompt = get_user_meta($user->ID, 'chatgpt_prompt', true);

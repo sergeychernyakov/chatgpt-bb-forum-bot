@@ -118,3 +118,17 @@ For any queries or support, please contact [Sergey Chernyakov](https://github.co
 <p align="center">
 <a href="https://www.buddyboss.com/"><img src="https://github.com/buddyboss/chatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
 </p>
+
+
+Plan:
++ vary the number of bot replies to 2 - 4 for each post
+add settings for that
+
++ check replies
+
+- When a Member posts in the forum, other Members have the ability to 'Like' the post, by clicking the thumbs up icon (see attached screenshot). I use a plugin called WP ULike to enable the thumbs up/like functionality.
+
+
+http://localhost:8888/wp-login.php
+chernyakov.sergey@gmail.com
+$P$BwVf64sNiLBy
