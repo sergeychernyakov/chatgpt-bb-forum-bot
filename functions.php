@@ -12,6 +12,29 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_admin_enqueue_script' ) ) {
     add_action( 'admin_enqueue_scripts', 'CHATGPTBBFORUMBOT_admin_enqueue_script' );
 }
 
+if (!function_exists('CHATGPTBBFORUMBOT_check_wp_ulike')) {
+    function CHATGPTBBFORUMBOT_check_wp_ulike() {
+        if (!is_plugin_active('wp-ulike/wp-ulike.php')) {
+            add_action('admin_notices', 'CHATGPTBBFORUMBOT_wp_ulike_admin_notice');
+            return false;
+        }
+        return true;
+    }
+
+    function CHATGPTBBFORUMBOT_wp_ulike_admin_notice() {
+        ?>
+        <div class="notice notice-error">
+            <p><?php _e('ChatGPT BB Forum Bot requires the WP ULike plugin to be installed and activated.', 'chatgpt-bb-forum-bot'); ?></p>
+        </div>
+        <?php
+    }
+    add_action('admin_init', 'CHATGPTBBFORUMBOT_check_wp_ulike');
+}
+
+if (!CHATGPTBBFORUMBOT_check_wp_ulike()) {
+    return;
+}
+
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_sections' ) ) {
     function CHATGPTBBFORUMBOT_get_settings_sections() {
         $settings = array(
@@ -38,51 +61,56 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_fields_for_section' ) ) 
         return (array) apply_filters( 'CHATGPTBBFORUMBOT_get_settings_fields_for_section', $retval, $section_id );
     }
 }
-
-if ( ! function_exists( 'CHATGPTBBFORUMBOT_get_settings_fields' ) ) {
+if (!function_exists('CHATGPTBBFORUMBOT_get_settings_fields')) {
     function CHATGPTBBFORUMBOT_get_settings_fields() {
         $fields = array();
 
         $fields['CHATGPTBBFORUMBOT_settings_section'] = array(
             'CHATGPTBBFORUMBOT_openai_api_key' => array(
-                'title'             => __( 'OpenAI API Key', 'chatgpt-bb-forum-bot' ),
+                'title'             => __('OpenAI API Key', 'chatgpt-bb-forum-bot'),
                 'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_openai_api_key',
                 'sanitize_callback' => 'sanitize_text_field',
                 'args'              => array(),
             ),
             'CHATGPTBBFORUMBOT_selected_forum' => array(
-                'title'             => __( 'Select Introduction Forum', 'chatgpt-bb-forum-bot' ),
+                'title'             => __('Select Introduction Forum', 'chatgpt-bb-forum-bot'),
                 'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_selected_forum',
                 'sanitize_callback' => 'sanitize_text_field',
                 'args'              => array(),
             ),
             'CHATGPTBBFORUMBOT_reply_interval_min_hours' => array(
-                'title'             => __( 'Reply Interval Min (hours)', 'chatgpt-bb-forum-bot' ),
+                'title'             => __('Reply Interval Min (hours)', 'chatgpt-bb-forum-bot'),
                 'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_reply_interval_min_hours',
                 'sanitize_callback' => 'floatval',
                 'args'              => array(),
             ),
             'CHATGPTBBFORUMBOT_reply_interval_max_hours' => array(
-                'title'             => __( 'Reply Interval Max (hours)', 'chatgpt-bb-forum-bot' ),
+                'title'             => __('Reply Interval Max (hours)', 'chatgpt-bb-forum-bot'),
                 'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_reply_interval_max_hours',
                 'sanitize_callback' => 'floatval',
                 'args'              => array(),
             ),
             'CHATGPTBBFORUMBOT_reply_to_direct_replies' => array(
-                'title'             => __( 'Reply to Direct Replies', 'chatgpt-bb-forum-bot' ),
+                'title'             => __('Reply to Direct Replies', 'chatgpt-bb-forum-bot'),
                 'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_reply_to_direct_replies',
                 'sanitize_callback' => 'sanitize_text_field',
                 'args'              => array(),
             ),
             'CHATGPTBBFORUMBOT_reply_to_new_introductions' => array(
-                'title'             => __( 'Reply to New Introductions', 'chatgpt-bb-forum-bot' ),
+                'title'             => __('Reply to New Introductions', 'chatgpt-bb-forum-bot'),
                 'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_reply_to_new_introductions',
+                'sanitize_callback' => 'sanitize_text_field',
+                'args'              => array(),
+            ),
+            'CHATGPTBBFORUMBOT_like_replies' => array(
+                'title'             => __('Like Replies', 'chatgpt-bb-forum-bot'),
+                'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_like_replies',
                 'sanitize_callback' => 'sanitize_text_field',
                 'args'              => array(),
             ),
         );
 
-        return (array) apply_filters( 'CHATGPTBBFORUMBOT_get_settings_fields', $fields );
+        return (array) apply_filters('CHATGPTBBFORUMBOT_get_settings_fields', $fields);
     }
 }
 
@@ -197,6 +225,23 @@ if ( ! function_exists( 'CHATGPTBBFORUMBOT_settings_callback_reply_to_new_introd
     }
 }
 
+if (!function_exists('CHATGPTBBFORUMBOT_settings_callback_like_replies')) {
+    function CHATGPTBBFORUMBOT_settings_callback_like_replies() {
+        $option = get_option('CHATGPTBBFORUMBOT_like_replies', '1');
+        ?>
+        <input name="CHATGPTBBFORUMBOT_like_replies"
+               id="CHATGPTBBFORUMBOT_like_replies"
+               type="checkbox"
+               value="1"
+               <?php checked('1', $option); ?>
+        />
+        <label for="CHATGPTBBFORUMBOT_like_replies">
+            <?php _e('Allow the bot to like replies', 'chatgpt-bb-forum-bot'); ?>
+        </label>
+        <?php
+    }
+}
+
 if ( ! function_exists( 'CHATGPTBBFORUMBOT_is_addon_field_enabled' ) ) {
     function CHATGPTBBFORUMBOT_is_addon_field_enabled( $default = 1 ) {
         return (bool) apply_filters( 'CHATGPTBBFORUMBOT_is_addon_field_enabled', (bool) get_option( 'CHATGPTBBFORUMBOT_field', $default ) );
@@ -244,3 +289,88 @@ function CHATGPTBBFORUMBOT_register_integration() {
     buddypress()->integrations['addon'] = new CHATGPTBBFORUMBOT_BuddyBoss_Integration();
 }
 add_action( 'bp_setup_integrations', 'CHATGPTBBFORUMBOT_register_integration' );
+
+if (!function_exists('CHATGPTBBFORUMBOT_create_vote')) {
+    function CHATGPTBBFORUMBOT_create_vote($topic_id, $user_id, $user_ip, $status) {
+        global $wpdb;
+
+        // Check if WP ULike function exists
+        if (!function_exists('wp_ulike_get_option')) {
+            trigger_error("WP ULike functions not found", E_USER_NOTICE);
+            return false;
+        }
+
+        // Prepare necessary variables
+        $table_name = $wpdb->prefix . 'ulike_forums';
+        $meta_table = $wpdb->prefix . 'ulike_meta';
+        $current_time = current_time('mysql');
+
+        // Check if the user already liked this topic
+        $existing_like = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_name WHERE topic_id = %d AND user_id = %d",
+            $topic_id, $user_id
+        ));
+
+        if ($existing_like > 0) {
+            return array('success' => false, 'message' => 'User has already liked this topic');
+        }
+
+        // Insert like into database
+        $result = $wpdb->insert(
+            $table_name,
+            array(
+                'topic_id'  => $topic_id,
+                'user_id'   => $user_id,
+                'ip'        => $user_ip,
+                'status'    => $status,
+                'date_time' => $current_time
+            ),
+            array(
+                '%d', '%d', '%s', '%d', '%s'
+            )
+        );
+
+        if ($result) {
+            // Update the like count in post meta
+            $meta_key = '_liked';
+            $like_count = get_post_meta($topic_id, $meta_key, true);
+            $like_count = empty($like_count) ? 0 : (int) $like_count;
+            $like_count++;
+            update_post_meta($topic_id, $meta_key, $like_count);
+
+            // Update the count_distinct_like in wp_ulike_meta
+            $meta_key = 'count_distinct_like';
+            $current_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT meta_value FROM $meta_table WHERE item_id = %d AND meta_key = %s",
+                $topic_id, $meta_key
+            ));
+            $new_count = empty($current_count) ? 1 : (int) $current_count + 1;
+
+            // Update or insert the new count
+            if ($current_count !== null) {
+                $wpdb->update(
+                    $meta_table,
+                    array('meta_value' => $new_count),
+                    array('item_id' => $topic_id, 'meta_key' => $meta_key),
+                    array('%d'),
+                    array('%d', '%s')
+                );
+            } else {
+                $wpdb->insert(
+                    $meta_table,
+                    array(
+                        'item_id'   => $topic_id,
+                        'meta_key'  => $meta_key,
+                        'meta_value' => $new_count,
+                        'meta_group' => 'topic'
+                    ),
+                    array('%d', '%s', '%d', '%s')
+                );
+            }
+
+            return array('success' => true, 'message' => 'Vote registered successfully');
+        } else {
+            return array('success' => false, 'message' => 'Failed to register vote');
+        }
+    }
+}
