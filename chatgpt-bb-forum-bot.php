@@ -250,7 +250,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             // Check if reply_text is valid
             if (empty($reply_text) || strpos($reply_text, 'Error') !== false || strpos($reply_text, 'No valid reply generated') !== false) {
                 error_log("Invalid reply text: $reply_text");
-                return;
+                return false;
             }
 
             // Get the reply details
@@ -279,14 +279,19 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
 
             if (is_wp_error($new_reply_id)) {
                 error_log("Failed to insert reply: " . $new_reply_id->get_error_message());
-                return;
+                return false;
             }
 
             // If the reply was successfully created, update the topic and forum
             if ($new_reply_id) {
                 bbp_update_topic($topic_id);
                 bbp_update_forum($forum_id);
+                error_log("chatgpt_bb_post_reply new reply was posted, new_reply_id: $new_reply_id");
+            } else {
+                error_log("Error: chatgpt_bb_post_reply new reply wasn't posted!");
+                return false;
             }
+            return true;
         }
 
         /**
@@ -330,7 +335,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             $reply = bbp_get_reply($reply_id);
             if (!$reply) {
                 error_log("Reply not found: $reply_id");
-                return;
+                return false;
             }
             $content = $reply->post_content;
 
@@ -339,7 +344,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             $author_user = get_userdata($author_id);
             if (!$author_user) {
                 error_log("Author not found for reply: $reply_id");
-                return;
+                return false;
             }
             $author_username = $author_user->user_login;
 
@@ -359,9 +364,12 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
                     'reply_text' => $reply_text,
                     'user_id' => $parent_reply_author_id
                 ));
+                error_log("New reply was created: reply_id: $reply_id, reply_text: $reply_text.");
             } else {
                 error_log("Generated reply text is empty for reply_id: $reply_id");
+                return false;
             }
+            return true;
         }
 
         /**
@@ -380,14 +388,14 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             // If there isn't a parent reply, return
             if (empty($parent_reply_id)) {
                 error_log("No parent reply found for reply_id: $reply_id");
-                return;
+                return false;
             }
 
             // Get the parent reply author ID
             $parent_reply = bbp_get_reply($parent_reply_id);
             if (!$parent_reply) {
                 error_log("Parent reply not found: $parent_reply_id");
-                return;
+                return false;
             }
 
             $parent_reply_author_id = $parent_reply->post_author;
@@ -398,12 +406,13 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             if (empty($chatgpt_prompt)) {
                 // Do nothing if the parent reply author does not have a chatgpt_prompt
                 error_log("No chatgpt_prompt found for parent reply author: $parent_reply_author_id");
-                return;
+                return false;
             }
 
             // Schedule the event to handle the reply generation
             $interval = rand(get_option('CHATGPTBBFORUMBOT_reply_interval_min_hours', CHATGPT_REPLY_INTERVAL_MIN_HOURS) * 3600, get_option('CHATGPTBBFORUMBOT_reply_interval_max_hours', CHATGPT_REPLY_INTERVAL_MAX_HOURS) * 3600); // Random interval between defined min and max in seconds
             $timestamp = time() + $interval;
+            $currenttime = time();
 
             $args = array(
                 'reply_id' => $reply_id,
@@ -416,8 +425,11 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             if (!$result) {
                 error_log("Failed to schedule event chatgpt_bb_generate_reply_event for reply_id: $reply_id");
             } else {
-                error_log("Scheduled event chatgpt_bb_generate_reply_event for reply_id: $reply_id at timestamp: $timestamp");
+                error_log("Scheduled event chatgpt_bb_generate_reply_event for reply_id: $reply_id at timestamp: $timestamp, interval: $interval, currenttime = $currenttime");
             }
+
+            // self::chatgpt_bb_generate_reply($args);
+            return $result;
         }
 
         /**************** reply_to_new_topic *************/
@@ -466,7 +478,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
 
             if (empty($users)) {
                 error_log("No users found with chatgpt_prompt for topic: $topic_id");
-                return;
+                return false;
             }
 
             // Shuffle the users array and pick 2-4 random users
@@ -488,6 +500,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
                     if (!empty($reply_text)) {
                         $interval = rand(get_option('CHATGPTBBFORUMBOT_reply_interval_min_hours', CHATGPT_REPLY_INTERVAL_MIN_HOURS) * 3600, get_option('CHATGPTBBFORUMBOT_reply_interval_max_hours', CHATGPT_REPLY_INTERVAL_MAX_HOURS) * 3600); // Random interval between defined min and max in seconds
                         $timestamp = time() + $interval;
+                        $currenttime = time();
 
                         $args = array(
                             'topic_id' => $topic_id,
@@ -499,8 +512,11 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
                         if (!$result) {
                             error_log("Failed to schedule event chatgpt_bb_post_reply_to_new_topic_event for topic_id: $topic_id");
                         } else {
-                            error_log("Scheduled event chatgpt_bb_post_reply_to_new_topic_event for topic_id: $topic_id at timestamp: $timestamp");
+                            error_log("Scheduled event chatgpt_bb_post_reply_to_new_topic_event for topic_id: $topic_id at timestamp: $timestamp, interval: $interval, currenttime: $currenttime");
                         }
+
+                        // self::chatgpt_bb_post_reply_to_new_topic($args);
+
                     } else {
                         error_log("Generated reply text is empty for topic_id: $topic_id");
                     }
@@ -508,6 +524,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
                     error_log("ChatGPT prompt is empty for user_id: $user->ID");
                 }
             }
+            return true;
         }
 
         /**
@@ -523,7 +540,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             // Check if reply_text is valid
             if (empty($reply_text) || strpos($reply_text, 'Error') !== false || strpos($reply_text, 'No valid reply generated') !== false) {
                 error_log("Invalid reply text: $reply_text for topic_id: $topic_id");
-                return;
+                return false;
             }
 
             // Prepare the data for the new reply
@@ -546,7 +563,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
 
             if (is_wp_error($new_reply_id)) {
                 error_log("Failed to insert reply: " . $new_reply_id->get_error_message());
-                return;
+                return false;
             }
 
             // If the reply was successfully created, update the topic and forum
@@ -557,8 +574,14 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
                 if (get_option('CHATGPTBBFORUMBOT_like_replies', '1') === '1') {
                     $user_ip = bbp_current_author_ip();
                     CHATGPTBBFORUMBOT_create_vote($topic_id, $user_id, 'post', $user_ip, 'like');
+                    error_log("Created vote for topic_id: $topic_id.");
                 }
+                error_log("New reply was created: new_reply_id: $new_reply_id.");
+            } else {
+                error_log("Error. New reply wasn't created!");
+                return false;
             }
+            return true;
         }
 
         /**
@@ -574,20 +597,24 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             // Check if the new topic is in the selected forum
             if ($forum_id != $selected_forum) {
                 error_log("Topic not in selected forum: $forum_id");
-                return;
+                return false;
             }
 
             $args = array(
                 'topic_id' => $topic_id,
                 'forum_id' => $forum_id
             );
-
-            $result = wp_schedule_single_event(time(), 'chatgpt_bb_generate_reply_to_new_topic_event', array($args));
+            $timestamp = time() + 10;
+            $currenttime = time();
+            $result = wp_schedule_single_event($timestamp, 'chatgpt_bb_generate_reply_to_new_topic_event', array($args));
             if (!$result) {
                 error_log("Failed to schedule event chatgpt_bb_generate_reply_to_new_topic_event for topic_id: $topic_id");
             } else {
-                error_log("Scheduled event chatgpt_bb_generate_reply_to_new_topic_event for topic_id: $topic_id");
+                error_log("Scheduled event chatgpt_bb_generate_reply_to_new_topic_event for topic_id: $topic_id at timestamp: $timestamp, currenttime: $currenttime");
             }
+
+            // self::chatgpt_bb_generate_reply_to_new_topic($args);
+            return $result;
         }
 
         /**************** face_of_brand_reply *************/
@@ -606,7 +633,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             // Check if the new topic is in the selected forum and the face of the brand account is set
             if ($forum_id != $selected_forum || empty($face_of_brand_account)) {
                 error_log("Failed to chatgpt_bb_schedule_face_of_brand_reply - forum_id: ($forum_id) or face_of_brand_account ($face_of_brand_account) are not set!");
-                return;
+                return false;
             }
 
             $args = array(
@@ -616,12 +643,19 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             );
 
             // Schedule the event to ensure reply within 24 hours (86400)
-            $result = wp_schedule_single_event(time() + 35, 'chatgpt_bb_generate_face_of_brand_reply_event', array($args)); // 86400 seconds = 24 hours
+            $interval = 86400;
+            $timestamp = time() + $interval;
+            $currenttime = time();
+
+            $result = wp_schedule_single_event($timestamp, 'chatgpt_bb_generate_face_of_brand_reply_event', array($args)); // 86400 seconds = 24 hours
             if (!$result) {
                 error_log("Failed to schedule event chatgpt_bb_generate_face_of_brand_reply_event for topic_id: $topic_id");
             } else {
-                error_log("Scheduled event chatgpt_bb_generate_face_of_brand_reply_event for topic_id: $topic_id");
+                error_log("Scheduled event chatgpt_bb_generate_face_of_brand_reply_event for topic_id: $topic_id at timestamp: $timestamp, interval: $interval, currenttime: $currenttime");
             }
+
+            // self::chatgpt_bb_generate_face_of_brand_reply($args);
+            return $result;
         }
 
         /**
@@ -638,7 +672,7 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             $topic = bbp_get_topic($topic_id);
             if (!$topic) {
                 error_log("Topic not found: $topic_id");
-                return;
+                return false;
             }
 
             $content = $topic->post_content;
@@ -646,13 +680,9 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             $author_user = get_userdata($topic_author_id);
             if (!$author_user) {
                 error_log("Author not found for topic: $topic_id");
-                return;
+                return false;
             }
             $author_username = $author_user->user_login;
-
-            // Custom query to get users with a non-empty chatgpt_prompt, excluding the topic author and face of the brand account
-            $face_of_brand_account = get_option('CHATGPTBBFORUMBOT_face_of_brand_account');
-
             $chatgpt_prompt = get_user_meta($user_id, 'chatgpt_prompt', true);
 
             if (!empty($chatgpt_prompt)) {
@@ -665,9 +695,6 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
                 $reply_text = self::chatgpt_generate_reply($full_prompt, $content);
 
                 if (!empty($reply_text)) {
-                    $interval = rand(get_option('CHATGPTBBFORUMBOT_reply_interval_min_hours', CHATGPT_REPLY_INTERVAL_MIN_HOURS) * 3600, get_option('CHATGPTBBFORUMBOT_reply_interval_max_hours', CHATGPT_REPLY_INTERVAL_MAX_HOURS) * 3600); // Random interval between defined min and max in seconds
-                    $timestamp = time() + $interval;
-
                     $args = array(
                         'topic_id' => $topic_id,
                         'reply_text' => $reply_text,
@@ -675,12 +702,16 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
                     );
 
                     self::chatgpt_bb_post_reply_to_new_topic($args);
+                    error_log("Generated reply text for topic_id: $topic_id, reply_text: $reply_text");
                 } else {
                     error_log("Generated reply text is empty for topic_id: $topic_id");
+                    return false;
                 }
             } else {
-                error_log("ChatGPT prompt is empty for user_id: $user->ID");
+                error_log("ChatGPT prompt is empty for user_id: $user_id");
+                return false;
             }
+            return true;
         }
     }
 
