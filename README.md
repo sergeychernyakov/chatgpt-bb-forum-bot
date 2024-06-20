@@ -121,14 +121,17 @@ For any queries or support, please contact [Sergey Chernyakov](https://github.co
 
 
 Plan:
-+ vary the number of bot replies to 2 - 4 for each post
-add settings for that
-
-+ check replies
-
-- When a Member posts in the forum, other Members have the ability to 'Like' the post, by clicking the thumbs up icon (see attached screenshot). I use a plugin called WP ULike to enable the thumbs up/like functionality.
 
 
 http://localhost:8888/wp-login.php
 chernyakov.sergey@gmail.com
 $P$BwVf64sNiLBy
+
+
+Is it possible to set a particular account to reply to every introduction post?
+
+For Crafty Club, we have the face of the brand - Louise. It would be useful if I could set it so that Louise replies to every post.
+
+What I meant is I want to keep the functionality you have already created: 20 bot accounts and each post gets 2 - 4 replies, so each bot replies ~10% of the time
+
+In addition, I want to set the Louise account so it replies to every introduction post.

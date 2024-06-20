@@ -447,13 +447,19 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
             }
             $author_username = $author_user->user_login;
 
-            // Custom query to get users with a non-empty chatgpt_prompt, excluding the topic author
+            // Custom query to get users with a non-empty chatgpt_prompt, excluding the topic author and face of the brand account
+            $face_of_brand_account = get_option('CHATGPTBBFORUMBOT_face_of_brand_account');
+            $exclude_ids = array($topic_author_id);
+            if (!empty($face_of_brand_account)) {
+                $exclude_ids[] = $face_of_brand_account;
+            }
+
             $user_query = new WP_User_Query(array(
                 'meta_key' => 'chatgpt_prompt',
                 'meta_value' => '',
                 'meta_compare' => '!=',
                 'orderby' => 'rand',
-                'exclude' => array($topic_author_id) // Exclude the topic author
+                'exclude' => $exclude_ids // Exclude the topic author and face of the brand account
             ));
 
             $users = $user_query->get_results(); // Get users with a non-empty chatgpt_prompt
@@ -583,6 +589,99 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
                 error_log("Scheduled event chatgpt_bb_generate_reply_to_new_topic_event for topic_id: $topic_id");
             }
         }
+
+        /**************** face_of_brand_reply *************/
+
+        /**
+         * Schedule reply for face of the brand account to new introduction posts
+         *
+         * @param int $topic_id The ID of the topic.
+         * @param int $forum_id The ID of the forum.
+         */
+        public static function chatgpt_bb_schedule_face_of_brand_reply($topic_id, $forum_id) {
+            // Get the selected forum and face of the brand account from the settings
+            $selected_forum = get_option('CHATGPTBBFORUMBOT_selected_forum');
+            $face_of_brand_account = get_option('CHATGPTBBFORUMBOT_face_of_brand_account');
+
+            // Check if the new topic is in the selected forum and the face of the brand account is set
+            if ($forum_id != $selected_forum || empty($face_of_brand_account)) {
+                error_log("Failed to chatgpt_bb_schedule_face_of_brand_reply - forum_id: ($forum_id) or face_of_brand_account ($face_of_brand_account) are not set!");
+                return;
+            }
+
+            $args = array(
+                'topic_id' => $topic_id,
+                'forum_id' => $forum_id,
+                'user_id'  => $face_of_brand_account
+            );
+
+            // Schedule the event to ensure reply within 24 hours (86400)
+            $result = wp_schedule_single_event(time() + 35, 'chatgpt_bb_generate_face_of_brand_reply_event', array($args)); // 86400 seconds = 24 hours
+            if (!$result) {
+                error_log("Failed to schedule event chatgpt_bb_generate_face_of_brand_reply_event for topic_id: $topic_id");
+            } else {
+                error_log("Scheduled event chatgpt_bb_generate_face_of_brand_reply_event for topic_id: $topic_id");
+            }
+        }
+
+        /**
+         * Generate and post the reply using ChatGPT
+         *
+         * @param array $args The arguments for generating the reply to new topic.
+         */
+        public static function chatgpt_bb_generate_face_of_brand_reply($args) {
+            $topic_id = $args['topic_id'];
+            $forum_id = $args['forum_id'];
+            $user_id = $args['user_id'];
+
+            // Get the topic details
+            $topic = bbp_get_topic($topic_id);
+            if (!$topic) {
+                error_log("Topic not found: $topic_id");
+                return;
+            }
+
+            $content = $topic->post_content;
+            $topic_author_id = $topic->post_author;
+            $author_user = get_userdata($topic_author_id);
+            if (!$author_user) {
+                error_log("Author not found for topic: $topic_id");
+                return;
+            }
+            $author_username = $author_user->user_login;
+
+            // Custom query to get users with a non-empty chatgpt_prompt, excluding the topic author and face of the brand account
+            $face_of_brand_account = get_option('CHATGPTBBFORUMBOT_face_of_brand_account');
+
+            $chatgpt_prompt = get_user_meta($user_id, 'chatgpt_prompt', true);
+
+            if (!empty($chatgpt_prompt)) {
+                $forum_name = bbp_get_forum_title($forum_id);
+                $topic_name = bbp_get_topic_title($topic_id);
+                $topic_description = bbp_get_topic_content($topic_id);
+
+                $full_prompt = "Your character: $chatgpt_prompt\n\nForum name: $forum_name\nTopic: $topic_name\nTopic description: $topic_description\n\nTopic author: @$author_username";
+
+                $reply_text = self::chatgpt_generate_reply($full_prompt, $content);
+
+                if (!empty($reply_text)) {
+                    $interval = rand(get_option('CHATGPTBBFORUMBOT_reply_interval_min_hours', CHATGPT_REPLY_INTERVAL_MIN_HOURS) * 3600, get_option('CHATGPTBBFORUMBOT_reply_interval_max_hours', CHATGPT_REPLY_INTERVAL_MAX_HOURS) * 3600); // Random interval between defined min and max in seconds
+                    $timestamp = time() + $interval;
+
+                    $args = array(
+                        'topic_id' => $topic_id,
+                        'reply_text' => $reply_text,
+                        'user_id' => $user_id
+                    );
+
+                    self::chatgpt_bb_post_reply_to_new_topic($args);
+                } else {
+                    error_log("Generated reply text is empty for topic_id: $topic_id");
+                }
+            } else {
+                error_log("ChatGPT prompt is empty for user_id: $user->ID");
+            }
+        }
     }
 
     /**
@@ -646,5 +745,13 @@ if ( ! class_exists( 'CHATGPTBBFORUMBOT_BB_Platform_Addon' ) ) {
         add_action('bbp_new_topic', array('CHATGPTBBFORUMBOT_BB_Platform_Addon', 'chatgpt_bb_schedule_reply_to_new_topic_generation'), 10, 2);
         add_action('chatgpt_bb_generate_reply_to_new_topic_event', array('CHATGPTBBFORUMBOT_BB_Platform_Addon', 'chatgpt_bb_generate_reply_to_new_topic'));
         add_action('chatgpt_bb_post_reply_to_new_topic_event', array('CHATGPTBBFORUMBOT_BB_Platform_Addon', 'chatgpt_bb_post_reply_to_new_topic'));
+    }
+
+    // Check if face_of_brand_account is set
+    $face_of_brand_account = get_option('CHATGPTBBFORUMBOT_face_of_brand_account');
+    if (!empty($face_of_brand_account)) {
+        // Hook to schedule reply for face of the brand account
+        add_action('bbp_new_topic', array('CHATGPTBBFORUMBOT_BB_Platform_Addon', 'chatgpt_bb_schedule_face_of_brand_reply'), 10, 2);
+        add_action('chatgpt_bb_generate_face_of_brand_reply_event', array('CHATGPTBBFORUMBOT_BB_Platform_Addon', 'chatgpt_bb_generate_face_of_brand_reply'));
     }
 }

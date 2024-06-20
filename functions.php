@@ -1,4 +1,6 @@
 <?php
+// functions.php
+
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
@@ -105,6 +107,12 @@ if (!function_exists('CHATGPTBBFORUMBOT_get_settings_fields')) {
             'CHATGPTBBFORUMBOT_like_replies' => array(
                 'title'             => __('Like Replies', 'chatgpt-bb-forum-bot'),
                 'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_like_replies',
+                'sanitize_callback' => 'sanitize_text_field',
+                'args'              => array(),
+            ),
+            'CHATGPTBBFORUMBOT_face_of_brand_account' => array(
+                'title'             => __('Face of the Brand Account', 'chatgpt-bb-forum-bot'),
+                'callback'          => 'CHATGPTBBFORUMBOT_settings_callback_face_of_brand_account',
                 'sanitize_callback' => 'sanitize_text_field',
                 'args'              => array(),
             ),
@@ -237,6 +245,29 @@ if (!function_exists('CHATGPTBBFORUMBOT_settings_callback_like_replies')) {
         />
         <label for="CHATGPTBBFORUMBOT_like_replies">
             <?php _e('Allow the bot to like replies', 'chatgpt-bb-forum-bot'); ?>
+        </label>
+        <?php
+    }
+}
+
+if (!function_exists('CHATGPTBBFORUMBOT_settings_callback_face_of_brand_account')) {
+    function CHATGPTBBFORUMBOT_settings_callback_face_of_brand_account() {
+        $face_of_brand_account = get_option('CHATGPTBBFORUMBOT_face_of_brand_account', '');
+        $users = get_users(array(
+            'meta_key'     => 'chatgpt_prompt',
+            'meta_value'   => '',
+            'meta_compare' => '!=',
+        ));
+        ?>
+        <select name="CHATGPTBBFORUMBOT_face_of_brand_account">
+            <?php foreach ($users as $user) : ?>
+                <option value="<?php echo esc_attr($user->ID); ?>" <?php selected($face_of_brand_account, $user->ID); ?>>
+                    <?php echo esc_html($user->display_name); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <label for="CHATGPTBBFORUMBOT_face_of_brand_account">
+            <?php _e('Select the face of the brand account', 'chatgpt-bb-forum-bot'); ?>
         </label>
         <?php
     }
