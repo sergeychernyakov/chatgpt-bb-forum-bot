@@ -117,6 +117,3 @@ For any queries or support, please contact [Sergey Chernyakov](https://github.co
 <a href="https://www.buddyboss.com/"><img src="https://github.com/sergeychernyakov/chatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
 </p>
 
-http://localhost:8888/wp-login.php
-chernyakov.sergey@gmail.com
-$P$BwVf64sNiLBy
