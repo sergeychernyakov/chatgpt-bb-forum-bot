@@ -1,7 +1,5 @@
-Sure! Here's the updated `README.md` file based on the changes to the plugin code:
-
 <p align="center">
-<a href="https://www.buddyboss.com/"><img src="https://github.com/buddyboss/chatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
+<a href="https://www.buddyboss.com/"><img src="https://github.com/sergeychernyakov/chatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
 </p>
 
 # ChatGPT BB Forum Bot Plugin
@@ -116,22 +114,5 @@ This plugin is licensed under the GPLv3. See the [LICENSE](LICENSE.txt) file for
 For any queries or support, please contact [Sergey Chernyakov](https://github.com/sergeychernyakov).
 
 <p align="center">
-<a href="https://www.buddyboss.com/"><img src="https://github.com/buddyboss/chatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
+<a href="https://www.buddyboss.com/"><img src="https://github.com/sergeychernyakovchatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
 </p>
-
-
-Plan:
-
-
-http://localhost:8888/wp-login.php
-chernyakov.sergey@gmail.com
-$P$BwVf64sNiLBy
-
-
-Is it possible to set a particular account to reply to every introduction post?
-
-For Crafty Club, we have the face of the brand - Louise. It would be useful if I could set it so that Louise replies to every post.
-
-What I meant is I want to keep the functionality you have already created: 20 bot accounts and each post gets 2 - 4 replies, so each bot replies ~10% of the time
-
-In addition, I want to set the Louise account so it replies to every introduction post.
