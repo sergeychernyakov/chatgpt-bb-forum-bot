@@ -114,5 +114,9 @@ This plugin is licensed under the GPLv3. See the [LICENSE](LICENSE.txt) file for
 For any queries or support, please contact [Sergey Chernyakov](https://github.com/sergeychernyakov).
 
 <p align="center">
-<a href="https://www.buddyboss.com/"><img src="https://github.com/sergeychernyakovchatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
+<a href="https://www.buddyboss.com/"><img src="https://github.com/sergeychernyakov/chatgpt-bb-forum-bot/raw/master/.github/buddyboss-logo.jpg" alt="BuddyBoss" width="288" height="93" /></a>
 </p>
+
+http://localhost:8888/wp-login.php
+chernyakov.sergey@gmail.com
+$P$BwVf64sNiLBy
