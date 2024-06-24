@@ -4,7 +4,7 @@
 
 # ChatGPT BB Forum Bot Plugin
 
-Welcome to the **ChatGPT BB Forum Bot Plugin** repository on GitHub. The ChatGPT BB Forum Bot Plugin is designed to automatically respond to new member introductions and discussion replies in your BuddyBoss/BuddyPress forums using OpenAI's GPT-4 API. This plugin helps create a more engaging and interactive community experience.
+Welcome to the **ChatGPT BuddyBoss Forum Bot Plugin** repository on GitHub. The ChatGPT BuddyBoss Forum Bot Plugin is designed to automatically respond to new member introductions and discussion replies in your BuddyBoss/BuddyPress forums using OpenAI's GPT-4 API. This plugin helps create a more engaging and interactive community experience.
 
 ## Features
 
